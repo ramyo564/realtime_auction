@@ -71,19 +71,24 @@ Yohan -> develop
 	- 위 순서로 진행하면 됩니다.
 - 그 이후 레디스나 셀러리 서버를 켜주는건 이전과 동일하게 진행하면 됩니다.
 
-
-![초기환경설정](https://github.com/wodnrP/realtime_auction/assets/103474568/edafc188-d48f-4430-981a-a51c5c622eea)
+`이미지 파일을 클릭하면 빨리감기가 가능합니다`
+  
+[![초기환경설정](https://github.com/wodnrP/realtime_auction/assets/103474568/edafc188-d48f-4430-981a-a51c5c622eea)](https://vimeo.com/1000162498?share=copy)
 
 
 ### 카카오페이 결제 API 사용 과정
 
 #### 상품등록과정 + 채팅과정 (테스트 확인)
 
-![상품등록및채팅과정](https://github.com/wodnrP/realtime_auction/assets/103474568/fcae8868-0122-45f9-b62f-2ea832ab6d33)
+`이미지 파일을 클릭하면 빨리감기가 가능합니다`
 
-#### 결제과정 (테스트 확인)
+[![상품등록및채팅과정](https://github.com/wodnrP/realtime_auction/assets/103474568/fcae8868-0122-45f9-b62f-2ea832ab6d33)](https://vimeo.com/1000164866?share=copy)
 
-![결제 과정](https://github.com/wodnrP/realtime_auction/assets/103474568/ad1e62af-8ec9-469d-a349-d4cbd69ae422)
+#### 카카오페이 결제과정 (테스트 확인)
+
+`이미지 파일을 클릭하면 빨리감기가 가능합니다`
+
+[![결제 과정](https://github.com/wodnrP/realtime_auction/assets/103474568/ad1e62af-8ec9-469d-a349-d4cbd69ae422)](https://vimeo.com/1000165433?share=copy)
 
 ##### 낙찰목록 불러오기
 
