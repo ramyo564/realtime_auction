@@ -6,6 +6,14 @@ Django Channels와 Celery를 활용하여 구축한 **실시간 경매 플랫폼
 
 <br>
 
+## 목차
+
+[아키텍처](https://github.com/ramyo564/realtime_auction#%EF%B8%8F-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98-architecture)   
+[주요기능](https://github.com/ramyo564/realtime_auction#-%EC%A3%BC%EC%9A%94-%EA%B8%B0%EB%8A%A5-key-features)    
+[제가 기여한 부분 (My Contribution)](https://github.com/ramyo564/realtime_auction#-%EC%A0%9C%EA%B0%80-%EA%B8%B0%EC%97%AC%ED%95%9C-%EB%B6%80%EB%B6%84-my-contribution)   
+[설치 및 API 상세 명세 + 동영상](https://github.com/ramyo564/realtime_auction#api)    
+[기술스택](https://github.com/ramyo564/realtime_auction#-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D-tech-stack)
+
 ## 🏗️ 아키텍처 (Architecture)
 
 실시간 통신과 비동기 작업 처리를 효율적으로 수행하기 위해 아래와 같은 아키텍처로 설계되었습니다.
@@ -260,7 +268,12 @@ graph LR
 <br>
 
 
-## API 
+## 🔧 설치 및 API 상세 명세 + 동영상
+
+<details>
+<summary><b> 📄 설치 가이드 및 전체 API 명세 보기 (클릭) </b></summary>
+<div markdown="1">
+
 
 | HTTP method | 기능                     | end-point                    | auth required |
 | ----------- | ------------------------ | ---------------------------- | ------------- |
@@ -281,9 +294,9 @@ graph LR
 
 
 
-## 결제과정
+### 결제과정
 ---- 
-### 초기 환경 설정
+#### 초기 환경 설정
 - 초기설정
 	- 모든 앱의 migrations 폴더 안에 `__init__.py`파일 밑에 숫자로 시작하는 파일들 삭제
 		- ex) 0001.py
@@ -299,21 +312,21 @@ graph LR
 [![초기환경설정](https://github.com/wodnrP/realtime_auction/assets/103474568/edafc188-d48f-4430-981a-a51c5c622eea)](https://vimeo.com/1000162498?share=copy)
 
 
-### 카카오페이 결제 API 사용 과정
+#### 카카오페이 결제 API 사용 과정
 
-#### 상품등록과정 + 채팅과정 (테스트 확인)
+##### 상품등록과정 + 채팅과정 (테스트 확인)
 
 `이미지 파일을 클릭하면 빨리감기가 가능합니다`
 
 [![상품등록및채팅과정](https://github.com/wodnrP/realtime_auction/assets/103474568/fcae8868-0122-45f9-b62f-2ea832ab6d33)](https://vimeo.com/1000164866?share=copy)
 
-#### 카카오페이 결제과정 (테스트 확인)
+##### 카카오페이 결제과정 (테스트 확인)
 
 `이미지 파일을 클릭하면 빨리감기가 가능합니다`
 
 [![결제 과정](https://github.com/wodnrP/realtime_auction/assets/103474568/ad1e62af-8ec9-469d-a349-d4cbd69ae422)](https://vimeo.com/1000165433?share=copy)
 
-##### 낙찰목록 불러오기
+###### 낙찰목록 불러오기
 
 - 사용자가 프론트단에서 낙찰된 상태에서 payment_list (마이페이지에서 결제목록) 을 클릭을 트리거로 실시간으로 결제목록이 업데이트 됩니다. 테스트는 아래와 같습니다.
 	- 결제 안하고 시간 초과
@@ -323,7 +336,7 @@ graph LR
 - 상품이 삭제될 경우 제품도 삭제되기 때문에 다음과 같은 상황을 생각해봐야 될 것 같습니다.
 	- 상대방이 결제를 했을 경우 PROTECT로 payment 데이터를 보호 하던가 최종 결제된 상품은 판매자가 해당 상품을 삭제 할 수 없도록 비공개로 해놔야함
 
-## 프론트 테스트 파일
+### 프론트 테스트 파일
 
 - payment_list.html
 
@@ -521,34 +534,35 @@ graph LR
 
 
 
-## 검색 기능 및 카테고리 필터링 결과 값
+### 검색 기능 및 카테고리 필터링 결과 값
 ---- 
-### /products/all-products  
+#### /products/all-products  
 
-#### 디폴트 결과 값
+##### 디폴트 결과 값
 
 ![디폴트 결과 값](https://github.com/wodnrP/realtime_auction/assets/103474568/3cfbc7da-367b-4696-9d3b-ba8872a53dae)
 
 
-#### 키워드 검색
+##### 키워드 검색
 
 ![키워드 적용](https://github.com/wodnrP/realtime_auction/assets/103474568/6e7cfc6e-cedb-4ddc-b5bd-26dfab8f390d)
 
 
-#### 카테고리 적용
+##### 카테고리 적용
 
 ![카테고리 적용](https://github.com/wodnrP/realtime_auction/assets/103474568/99cf5c09-2441-41a8-9bde-1dfc82e39434)
 
 
 
-## 어드민 패널 썸네일 적용
+### 어드민 패널 썸네일 적용
 
 ![어드민 패널](https://github.com/wodnrP/realtime_auction/assets/103474568/4d338d12-b95a-4e9f-9b6c-35008543ba35)
 
 
+</div>
+</details>
 
-
-
+<br>
 
 ## 🚀 기술 스택 (Tech Stack)
 ### Backend
