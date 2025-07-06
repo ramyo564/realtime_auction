@@ -11,7 +11,7 @@ Django Channels와 Celery를 활용하여 구축한 **실시간 경매 플랫폼
 [아키텍처](https://github.com/ramyo564/realtime_auction#%EF%B8%8F-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98-architecture)   
 [주요기능](https://github.com/ramyo564/realtime_auction#-%EC%A3%BC%EC%9A%94-%EA%B8%B0%EB%8A%A5-key-features)    
 [제가 기여한 부분 (My Contribution)](https://github.com/ramyo564/realtime_auction#-%EC%A0%9C%EA%B0%80-%EA%B8%B0%EC%97%AC%ED%95%9C-%EB%B6%80%EB%B6%84-my-contribution)   
-[설치 및 API 상세 명세 + 동영상](https://github.com/ramyo564/realtime_auction#-%EC%84%A4%EC%B9%98-%EB%B0%8F-api-%EC%83%81%EC%84%B8-%EB%AA%85%EC%84%B8--%EB%8F%99%EC%98%81%EC%83%81)    
+[설치 가이드 및 API 명세 + 동영상 보기](https://github.com/ramyo564/realtime_auction#-%EC%84%A4%EC%B9%98-%EB%B0%8F-api-%EC%83%81%EC%84%B8-%EB%AA%85%EC%84%B8--%EB%8F%99%EC%98%81%EC%83%81)    
 [기술스택](https://github.com/ramyo564/realtime_auction#-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D-tech-stack)
 
 ## 🏗️ 아키텍처 (Architecture)
@@ -268,10 +268,10 @@ graph LR
 <br>
 
 
-## 🔧 설치 및 API 상세 명세 + 동영상
+## 🔧 설치 가이드 및 API 명세 + 동영상 보기
 
 <details>
-<summary><b> 📄 설치 가이드 및 전체 API 명세 보기 (클릭) </b></summary>
+<summary><b> 📄 설치 가이드 및 API 명세 + 동영상 보기 (클릭) </b></summary>
 <div markdown="1">
 
 
