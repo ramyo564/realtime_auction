@@ -15,6 +15,7 @@ Django Channels와 Celery를 활용하여 구축한 **실시간 경매 플랫폼
 [기술스택](https://github.com/ramyo564/realtime_auction#-%EA%B8%B0%EC%88%A0-%EC%8A%A4%ED%83%9D-tech-stack)
 
 ## 🏗️ 아키텍처 (Architecture)
+<a id="lm-arch-system"></a>
 
 실시간 통신과 비동기 작업 처리를 효율적으로 수행하기 위해 아래와 같은 아키텍처로 설계되었습니다.
 
@@ -75,6 +76,7 @@ graph TD
 ## ✨ 주요 기능 (Key Features)
 
 ### 🎯 실시간 경매 시스템
+<a id="lm-feature-auction-realtime"></a>
 <details>
 <summary><b> 펼치기 👈 </b></summary>
 <div markdown="1">
@@ -90,6 +92,7 @@ graph TD
 </details>
 
 ### 🛒 상품 관리 시스템
+<a id="lm-feature-product-management"></a>
 <details>
 <summary><b> 펼치기 👈 </b></summary>
 <div markdown="1">
@@ -107,6 +110,7 @@ graph TD
 </details>
 
 ### 💲 커뮤니케이션 및 결제
+<a id="lm-feature-payment-chat"></a>
 <details>
 <summary><b> 펼치기 👈 </b></summary>
 <div markdown="1">
@@ -124,6 +128,7 @@ graph TD
 </details>
 
 ### 👤 사용자 및 인증
+<a id="lm-feature-user-auth"></a>
 <details>
 <summary><b> 펼치기 👈 </b></summary>
 <div markdown="1">
@@ -155,6 +160,7 @@ graph TD
 </details>
 
 ### ⚙️ 데이터 관리 및 최적화
+<a id="lm-feature-data-ops"></a>
 <details>
 <summary><b> 펼치기 👈 </b></summary>
 <div markdown="1">
@@ -208,6 +214,7 @@ graph LR
 <br>
 
 ### 📌 1. 카카오페이 결제 시스템 전체 플로우 구현
+<a id="lm-case-payment-flow"></a>
 
 단순 API 호출을 넘어, 실제 결제 과정에서 발생하는 상태 관리 문제를 해결하며 전체 결제 플로우를 책임지고 구현했습니다.
 
@@ -230,6 +237,7 @@ graph LR
 <br>
 
 ### 📌 2. 검색 성능 최적화 및 데이터 모델링 개선
+<a id="lm-case-search-modeling"></a>
 
 사용자가 원하는 상품을 빠르고 정확하게 찾을 수 있도록, 검색 기능의 핵심 로직과 데이터 구조를 개선했습니다.
 
@@ -248,6 +256,7 @@ graph LR
 <br>
 
 ### 📌 3. 견고한 상품(경매) API 설계 및 구현
+<a id="lm-case-product-api"></a>
 
 서비스의 핵심인 상품(경매)의 생명주기를 관리하고, 비즈니스 규칙을 적용한 안정적인 REST API를 설계했습니다.
 
