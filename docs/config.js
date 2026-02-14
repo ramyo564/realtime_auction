@@ -56,7 +56,10 @@ const mapCards = (ids) => ids.map((id) => ({
     mermaidId: id,
     title: cardMeta[id]?.title ?? id,
     description: cardMeta[id]?.description ?? '',
-    learnMore: learnMoreLinks[id] ?? '#'
+    links: [
+        { label: 'EVIDENCE', href: `./evidence/realtime_auction/index.html#${id}`, variant: 'primary' },
+        { label: 'README', href: learnMoreLinks[id] ?? '#', variant: 'ghost' }
+    ]
 }));
 
 export const templateConfig = {
@@ -178,6 +181,7 @@ export const templateConfig = {
         description: 'For architecture, realtime systems, and auction-platform collaboration, use one of the channels below.',
         actions: [
             { label: 'GITHUB', href: 'https://github.com/ramyo564/realtime_auction' },
+            { label: 'EVIDENCE', href: './evidence/realtime_auction/index.html' },
             { label: 'EMAIL', href: 'mailto:yohan032yohan@gmail.com' },
             { label: 'TEAM_REPO', href: 'https://github.com/wodnrP/realtime_auction' }
         ]

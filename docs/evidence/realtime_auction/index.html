@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Auction Evidence</title>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #080e18;
+            --panel: #0f1623;
+            --line: #233248;
+            --text: #d8e2f2;
+            --muted: #95a7c4;
+            --blue: #58a6ff;
+            --gold: #d29922;
+            --green: #2ea043;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at 20% 10%, #132034, var(--bg) 60%);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .index-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            border-bottom: 1px solid var(--line);
+            background: rgba(8, 14, 24, 0.94);
+            backdrop-filter: blur(5px);
+        }
+
+        .index-inner {
+            width: min(1240px, 92vw);
+            margin: 0 auto;
+            padding: 12px 0;
+        }
+
+        .index-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .index-title {
+            margin: 0;
+            font-size: 0.96rem;
+            color: var(--blue);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.03em;
+        }
+
+        .index-toggle {
+            display: inline-flex;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: rgba(88, 166, 255, 0.08);
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        .index-nav {
+            margin-top: 10px;
+            display: none;
+            max-height: min(56vh, 460px);
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .index-nav.is-open {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .index-link {
+            color: var(--text);
+            text-decoration: none;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 6px 9px;
+            display: block;
+            background: rgba(88, 166, 255, 0.05);
+            font-size: 0.78rem;
+        }
+
+        .index-link:hover {
+            border-color: var(--blue);
+        }
+
+        .wrap {
+            width: min(1240px, 92vw);
+            margin: 0 auto;
+            padding: 16px 0 60px;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(15, 22, 35, 0.96), rgba(9, 14, 24, 0.96));
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.03em;
+        }
+
+        h2 {
+            font-size: 1rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 0.88rem;
+            color: var(--blue);
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        p,
+        li {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.92rem;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 6px;
+        }
+
+        a {
+            color: #9bc5ff;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .case-summary {
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            border: 1px solid var(--green);
+            color: #9be9a8;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+
+        .code-snippet {
+            margin-top: 8px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.24);
+        }
+
+        .code-snippet-label {
+            display: block;
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--line);
+            color: var(--blue);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            background: rgba(88, 166, 255, 0.08);
+        }
+
+        .code-snippet pre {
+            margin: 0;
+            padding: 10px 12px;
+            overflow-x: auto;
+        }
+
+        .code-snippet pre code {
+            display: block;
+            white-space: pre;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.77rem;
+            line-height: 1.5;
+            color: inherit;
+        }
+
+        .code-snippet pre code.hljs {
+            background: transparent;
+            padding: 0;
+        }
+
+        .ok {
+            color: #9be9a8;
+        }
+
+        .partial {
+            color: #f7c75a;
+        }
+
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: stretch;
+        }
+
+        .evidence-grid>.panel {
+            margin-bottom: 0;
+            height: 100%;
+        }
+
+        section[id] {
+            scroll-margin-top: 96px;
+        }
+
+        @media (max-width: 920px) {
+            .evidence-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .index-toggle {
+                display: inline-flex;
+            }
+
+            .index-nav {
+                display: none;
+                margin-top: 8px;
+                border: 1px solid var(--line);
+                border-radius: 10px;
+                padding: 8px;
+                background: rgba(8, 14, 24, 0.98);
+            }
+
+            .index-nav.is-open {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .index-link {
+                font-size: 0.76rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="index-header">
+        <div class="index-inner">
+            <div class="index-top">
+                <h1 class="index-title">REALTIME_AUCTION EVIDENCE INDEX</h1>
+                <button id="index-toggle" class="index-toggle" type="button" aria-label="Toggle index navigation"
+                    aria-controls="index-nav" aria-expanded="true">CLOSE</button>
+            </div>
+            <nav id="index-nav" class="index-nav is-open" aria-label="Evidence index"></nav>
+        </div>
+    </header>
+
+    <main class="wrap">
+        <section class="panel">
+            <h2>Overview</h2>
+            <p class="muted">Hybrid mode: each architecture card links to internal evidence and keeps README anchors.</p>
+            <p class="muted" style="margin-top:8px;">Use the header index to jump across cards. On mobile, use the INDEX toggle.</p>
+        </section>
+
+        <section id="evidence-grid" class="evidence-grid"></section>
+
+        <section class="panel">
+            <h2>Note</h2>
+            <p class="muted">This page maps card-level claims to concrete source paths in realtime_auction.</p>
+            <p class="muted" style="margin-top:8px;">Back to architecture dashboard: <a href="../../index.html">realtime_auction/docs/index.html</a></p>
+        </section>
+    </main>
+
+    <script type="module">
+        import { templateConfig } from '../../config.js';
+        import { learnMoreLinks } from '../../learnmore-links.js';
+
+        const repoBase = 'https://github.com/ramyo564/realtime_auction/blob/main/';
+
+        const codePathMap = {
+            'realtime-auction-flow': [
+                'auction/consumers.py',
+                'auction/routing.py',
+                'config/asgi.py'
+            ],
+            'websocket-bid-concurrency': [
+                'auction/consumers.py',
+                'auction/models.py'
+            ],
+            'celery-auction-room-lifecycle': [
+                'auction/tasks.py',
+                'config/celery.py'
+            ],
+            'payment-kakao-ready-approval': [
+                'payment/views.py',
+                'payment/payment_platform/kakao_pay.py',
+                'payment/models.py'
+            ],
+            'payment-expiration-cleanup': [
+                'payment/tasks.py',
+                'payment/models.py'
+            ],
+            'product-filter-mptt': [
+                'product/filters.py',
+                'product/models.py',
+                'product/views.py'
+            ],
+            'user-phone-auth-jwt': [
+                'user/views.py',
+                'user/models.py',
+                'user/serializers.py'
+            ],
+            'websocket-jwt-middleware': [
+                'auction/middlewares.py',
+                'config/asgi.py',
+                'user/models.py'
+            ],
+            'chat-autocreate-flow': [
+                'chat/tasks.py',
+                'chat/views.py',
+                'chat/models.py'
+            ],
+            'case-payment-state-management': [
+                'payment/views.py',
+                'payment/models.py',
+                'payment/tasks.py'
+            ],
+            'case-search-modeling-optimization': [
+                'product/filters.py',
+                'product/models.py',
+                'product/views.py'
+            ],
+            'case-product-api-guard': [
+                'product/views.py',
+                'auction/views.py',
+                'report/views.py'
+            ]
+        };
+
+        const snippetMap = {
+            'realtime-auction-flow': {
+                label: 'Realtime Room Join and Broadcast',
+                language: 'python',
+                code: [
+                    'async def connect(self):',
+                    '    self.room_name = self.scope["url_route"]["kwargs"]["auction_pk"]',
+                    '    self.room_group_name = f"auction_{self.room_name}"',
+                    '    await self.channel_layer.group_add(self.room_group_name, self.channel_name)',
+                    '    await self.accept()',
+                    '    await self.send_message(f"{self.user.nickname} 님이 입장하셨습니다.")'
+                ].join('\n')
+            },
+            'websocket-bid-concurrency': {
+                label: 'Bid Upsert and Max Price Guard',
+                language: 'python',
+                code: [
+                    '@database_sync_to_async',
+                    'def create_or_update_auction_message(self, user, room_name, bid_price):',
+                    '    auction_message = AuctionMessage.objects.filter(auction_room=auction_room[0], auction_user=user)',
+                    '    if not auction_message.exists():',
+                    '        AuctionMessage.objects.create(..., auction_bid_price=bid_price)',
+                    '    elif auction_message[0].auction_bid_price < bid_price:',
+                    '        auction_message.update(auction_bid_price=bid_price)',
+                    '',
+                    '@database_sync_to_async',
+                    'def update_max_price(self, bid_price):',
+                    '    if auction_room.auction_final_price < bid_price:',
+                    '        auction_room.auction_final_price = bid_price'
+                ].join('\n')
+            },
+            'celery-auction-room-lifecycle': {
+                label: 'Celery Auction Lifecycle Task',
+                language: 'python',
+                code: [
+                    '@shared_task',
+                    'def check_and_create_auction_rooms():',
+                    '    products_to_start = Products.objects.filter(',
+                    '        auction_start_at__lte=timezone.now(),',
+                    '        product_active=True,',
+                    '    )',
+                    '    for product in products_to_start:',
+                    '        if not product.auction_end_at:',
+                    '            AuctionRoom.objects.create(auction_host=product.seller_id, auction_active=True)'
+                ].join('\n')
+            },
+            'payment-kakao-ready-approval': {
+                label: 'KakaoPay Ready/Approval',
+                language: 'python',
+                code: [
+                    'class KakaoPayReady(APIView):',
+                    '    def post(self, request):',
+                    '        payment = get_object_or_404(Payments, pk=payment_id)',
+                    '        kakao_pay = KakaoPay()',
+                    '        kakao_pay.kakao_pay_ready(id=payment.pk, user=payment.buyer, ...)',
+                    '',
+                    'def kakao_pay_approval(self, request, id, tid, user):',
+                    '    data = {"cid": "TC0ONETIME", "tid": tid, "partner_order_id": id, "partner_user_id": user, "pg_token": request.data["pg_token"]}',
+                    '    res = requests.post(URL, headers=headers, params=data).json()',
+                    '    payment = Payments.objects.get(pk=id, paid=False)'
+                ].join('\n')
+            },
+            'payment-expiration-cleanup': {
+                label: 'Expired Payment Cleanup',
+                language: 'python',
+                code: [
+                    'expired_payments = Payments.objects.filter(buyer=request.user, paid=False)',
+                    'for payment in expired_payments:',
+                    '    if payment.payment_date + timedelta(minutes=15) <= timezone.now():',
+                    '        expired_payments.delete()',
+                    '',
+                    'create_payment_for_auction_winner.delay(room_id)'
+                ].join('\n')
+            },
+            'product-filter-mptt': {
+                label: 'Filter + MPTT Category',
+                language: 'python',
+                code: [
+                    'class ProductsFilter(filters.FilterSet):',
+                    '    keyword = filters.CharFilter(field_name="product_name", lookup_expr="icontains")',
+                    '    category = filters.CharFilter(field_name="category__category_name", lookup_expr="icontains")',
+                    '',
+                    'class Categories(MPTTModel):',
+                    '    category_name = models.CharField(max_length=100)',
+                    '    parent = TreeForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="children")'
+                ].join('\n')
+            },
+            'user-phone-auth-jwt': {
+                label: 'Phone Auth and JWT Issue',
+                language: 'python',
+                code: [
+                    'class LoginView(APIView):',
+                    '    def post(self, request):',
+                    '        user = authenticate(phone_number=phone_number, password=password)',
+                    '        if user.is_authenticated:',
+                    '            token = MyTokenObtainPairSerializer.get_token(user)',
+                    '            refresh_token = str(token)',
+                    '            access_token = str(token.access_token)',
+                    '            return Response({"access": access_token, "refresh": refresh_token})'
+                ].join('\n')
+            },
+            'websocket-jwt-middleware': {
+                label: 'WebSocket JWT Middleware',
+                language: 'python',
+                code: [
+                    'class WebSocketJWTAuthMiddleware(BaseMiddleware):',
+                    '    async def __call__(self, scope, receive, send):',
+                    '        authorization_header = next((header for header in scope["headers"] if header[0] == b"cookie"), None)',
+                    '        token = authorization_header[1].decode("utf-8").split("=")[-1] if authorization_header else None',
+                    '        try:',
+                    '            access_token = AccessToken(token)',
+                    '            scope["user"] = await get_user(access_token["user_id"])',
+                    '        except TokenError:',
+                    '            scope["user"] = AnonymousUser()'
+                ].join('\n')
+            },
+            'chat-autocreate-flow': {
+                label: 'Post-auction Chat Creation',
+                language: 'python',
+                code: [
+                    '@shared_task',
+                    'def create_chatting_for_completed_auctions():',
+                    '    completed_auctions = AuctionRoom.objects.filter(',
+                    '        auction_winner__isnull=False,',
+                    '        auction_end_at__lt=timezone.now(),',
+                    '        auction_active=False',
+                    '    )',
+                    '    for auction in completed_auctions:',
+                    '        existing_chatting = Chatting.objects.filter(auction_id=auction.id).first()',
+                    '        if not existing_chatting:',
+                    '            Chatting.objects.create(auction_id=auction)'
+                ].join('\n')
+            },
+            'case-payment-state-management': {
+                label: 'State Bridge for Ready/Approval',
+                language: 'python',
+                code: [
+                    'PAYMENT_DIC = {}',
+                    '',
+                    'class KakaoPayReady(APIView):',
+                    '    def post(self, request):',
+                    '        PAYMENT_DIC[str(request.user)] = request.data.get("paymentId")',
+                    '',
+                    'class KakaoPayApprovalView(APIView):',
+                    '    def post(self, request):',
+                    '        payment = get_object_or_404(Payments, pk=PAYMENT_DIC[str(request.user)], paid=False, kakao_tid__isnull=False)'
+                ].join('\n')
+            },
+            'case-search-modeling-optimization': {
+                label: 'Search Query Composition',
+                language: 'python',
+                code: [
+                    'filter_set = ProductsFilter(',
+                    '    request.GET,',
+                    '    queryset=Products.objects.filter(auction_end_at__gt=now).order_by("auction_end_at"),',
+                    ')',
+                    'paginator = PageNumberPagination()',
+                    'paginator.page_size = 2',
+                    'queryset = paginator.paginate_queryset(filter_set.qs, request)'
+                ].join('\n')
+            },
+            'case-product-api-guard': {
+                label: 'API Guard Example',
+                language: 'python',
+                code: [
+                    'class NewAuctionRoomView(APIView):',
+                    '    permission_classes = [IsAuthenticated]',
+                    '    def delete(self, request, room_pk):',
+                    '        room = get_object_or_404(AuctionRoom, pk=room_pk)',
+                    '        if room.auction_host != request.user:',
+                    '            raise PermissionDenied',
+                    '        room.delete()'
+                ].join('\n')
+            }
+        };
+
+        const badgeMap = {
+            'realtime-auction-flow': 'BACKEND',
+            'websocket-bid-concurrency': 'BACKEND',
+            'celery-auction-room-lifecycle': 'BACKEND',
+            'payment-kakao-ready-approval': 'BACKEND',
+            'payment-expiration-cleanup': 'BACKEND',
+            'product-filter-mptt': 'PLATFORM_AND_SECURITY',
+            'user-phone-auth-jwt': 'PLATFORM_AND_SECURITY',
+            'websocket-jwt-middleware': 'PLATFORM_AND_SECURITY',
+            'chat-autocreate-flow': 'PLATFORM_AND_SECURITY',
+            'case-payment-state-management': 'CORE_CASE',
+            'case-search-modeling-optimization': 'CORE_CASE',
+            'case-product-api-guard': 'CORE_CASE'
+        };
+
+        const assessmentMap = {
+            'case-payment-state-management': { status: 'partial', text: 'Bridging state between payment phases is implemented with pragmatic server-side state management and periodic cleanup.' },
+            'case-product-api-guard': { status: 'partial', text: 'Core permission checks are present on write/delete paths; guard scope can be expanded with finer domain policies.' }
+        };
+
+        const defaultAssessment = { status: 'ok', text: 'Aligned: README claim is cross-checked with implementation paths and architecture card intent.' };
+
+        const toggle = document.getElementById('index-toggle');
+        const nav = document.getElementById('index-nav');
+        const evidenceGrid = document.getElementById('evidence-grid');
+
+        const closeNav = () => {
+            nav.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.textContent = 'INDEX';
+        };
+
+        toggle.addEventListener('click', () => {
+            const nextOpen = !nav.classList.contains('is-open');
+            nav.classList.toggle('is-open', nextOpen);
+            toggle.setAttribute('aria-expanded', String(nextOpen));
+            toggle.textContent = nextOpen ? 'CLOSE' : 'INDEX';
+        });
+
+        nav.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.classList.contains('index-link')) {
+                closeNav();
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Node)) {
+                return;
+            }
+            if (!nav.contains(target) && !toggle.contains(target)) {
+                closeNav();
+            }
+        });
+
+        const serviceSections = Array.isArray(templateConfig?.serviceSections) ? templateConfig.serviceSections : [];
+        const seen = new Set();
+        const cards = [];
+
+        serviceSections.forEach((section) => {
+            const groups = Array.isArray(section?.groups) && section.groups.length > 0
+                ? section.groups
+                : [{ cards: section?.cards ?? [] }];
+
+            groups.forEach((group) => {
+                const groupCards = Array.isArray(group?.cards) ? group.cards : [];
+                groupCards.forEach((card) => {
+                    const id = String(card?.mermaidId ?? '').trim();
+                    if (!id || seen.has(id)) {
+                        return;
+                    }
+                    seen.add(id);
+                    cards.push({
+                        id,
+                        title: card?.title ?? id,
+                        description: card?.description ?? '',
+                        readme: learnMoreLinks[id] ?? '#'
+                    });
+                });
+            });
+        });
+
+        const toFileName = (path) => {
+            const cleanPath = String(path || '').split('#')[0].split('?')[0];
+            const parts = cleanPath.split('/').filter(Boolean);
+            return parts.length > 0 ? parts[parts.length - 1] : cleanPath || 'source';
+        };
+
+        cards.forEach((card, index) => {
+            const navLink = document.createElement('a');
+            navLink.className = 'index-link';
+            navLink.href = `#${card.id}`;
+            navLink.textContent = `${index + 1}. ${card.title}`;
+            nav.appendChild(navLink);
+
+            const panel = document.createElement('section');
+            panel.id = card.id;
+            panel.className = 'panel';
+
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = badgeMap[card.id] || 'EVIDENCE';
+
+            const heading = document.createElement('h2');
+            heading.textContent = card.title;
+
+            const summary = document.createElement('p');
+            summary.className = 'case-summary';
+            summary.textContent = card.description || 'Card evidence summary';
+
+            const readmeHeader = document.createElement('h3');
+            readmeHeader.textContent = 'README Source';
+            const readmeList = document.createElement('ul');
+            const readmeItem = document.createElement('li');
+            const readmeLink = document.createElement('a');
+            readmeLink.href = card.readme;
+            readmeLink.target = '_blank';
+            readmeLink.rel = 'noopener noreferrer';
+            readmeLink.textContent = card.readme;
+            readmeItem.appendChild(readmeLink);
+            readmeList.appendChild(readmeItem);
+
+            const codeHeader = document.createElement('h3');
+            codeHeader.textContent = 'Code Evidence';
+            const codeList = document.createElement('ul');
+            const codePaths = Array.isArray(codePathMap[card.id]) && codePathMap[card.id].length > 0
+                ? codePathMap[card.id]
+                : ['docs/diagrams.js', 'docs/config.js'];
+
+            codePaths.forEach((path) => {
+                const item = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `${repoBase}${path}`;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = toFileName(path);
+                link.title = path;
+                link.setAttribute('aria-label', `Open source file ${path}`);
+                item.appendChild(link);
+                codeList.appendChild(item);
+            });
+
+            const snippetHeader = document.createElement('h3');
+            snippetHeader.textContent = 'Code Snippet';
+            const snippet = snippetMap[card.id] || {
+                label: 'Implementation Pointer',
+                language: 'text',
+                code: codePaths.map((path) => `refer: ${path}`).join('\n')
+            };
+
+            const snippetBlock = document.createElement('div');
+            snippetBlock.className = 'code-snippet';
+
+            const snippetLabel = document.createElement('span');
+            snippetLabel.className = 'code-snippet-label';
+            snippetLabel.textContent = snippet.label || 'Key Implementation';
+
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            code.className = `language-${snippet.language || 'text'}`;
+            code.textContent = snippet.code || '';
+            pre.appendChild(code);
+            snippetBlock.append(snippetLabel, pre);
+
+            const assessmentHeader = document.createElement('h3');
+            assessmentHeader.textContent = 'Assessment';
+            const assessment = assessmentMap[card.id] || defaultAssessment;
+            const assessmentText = document.createElement('p');
+            assessmentText.className = assessment.status;
+            assessmentText.textContent = assessment.text;
+
+            panel.append(
+                badge,
+                heading,
+                summary,
+                readmeHeader,
+                readmeList,
+                codeHeader,
+                codeList,
+                snippetHeader,
+                snippetBlock,
+                assessmentHeader,
+                assessmentText
+            );
+
+            evidenceGrid.appendChild(panel);
+        });
+
+        if (window.hljs) {
+            document.querySelectorAll('pre code').forEach((el) => window.hljs.highlightElement(el));
+        }
+    </script>
+</body>
+
+</html>

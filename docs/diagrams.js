@@ -46,7 +46,7 @@ export const diagrams = {
     `,
 
     'realtime-auction-flow': `
-        graph LR
+        graph TD
         UserJoin[Authenticated user joins ws/auction room] --> GroupJoin[group_add auction room]
         GroupJoin --> BidEvent[bid_price event]
         BidEvent --> PersistBid[create_or_update_auction_message]
@@ -72,7 +72,7 @@ export const diagrams = {
     `,
 
     'celery-auction-room-lifecycle': `
-        graph LR
+        graph TD
         ProductCreated[Product with auction_start_at] --> BeatTick[Celery Beat every 10s]
         BeatTick --> CheckTask[check_and_create_auction_rooms]
         CheckTask --> CreateRoom[create AuctionRoom if missing]
@@ -124,7 +124,7 @@ export const diagrams = {
     `,
 
     'user-phone-auth-jwt': `
-        graph LR
+        graph TD
         PhoneCheck[POST users/sms] --> SmsSend[Naver SMS send]
         SmsSend --> TempUser[save phone and auth_number]
         TempUser --> AuthCheck[POST users/auth]
@@ -149,7 +149,7 @@ export const diagrams = {
     `,
 
     'chat-autocreate-flow': `
-        graph LR
+        graph TD
         AuctionEnded[auction_active false and winner exists] --> ChatTask[create_chatting_for_completed_auctions]
         ChatTask --> ChatRoom[create Chatting one-to-one with auction]
         ChatRoom --> WSChat[ws/chat room connect]
@@ -186,7 +186,7 @@ export const diagrams = {
     `,
 
     'case-product-api-guard': `
-        graph LR
+        graph TD
         CreateReq[Create or Delete product API call] --> AuthCheck[JWT auth and user ownership]
         AuthCheck --> StateRule[auction/product active state rule]
         StateRule --> Allowed[allow valid request]
