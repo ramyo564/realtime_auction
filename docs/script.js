@@ -1042,9 +1042,9 @@ function setupMermaidModal() {
 document.addEventListener('DOMContentLoaded', async () => {
     setSystemInfo();
     renderHero();
-    renderServiceSections();
     renderTopPanels();
     renderSkills();
+    renderServiceSections();
     renderContact();
     renderNavigation();
     setupUptime();
