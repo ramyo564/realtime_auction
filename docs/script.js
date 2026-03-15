@@ -1,4 +1,3 @@
-
 const analyticsSession = {
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
     pageType: 'portfolio',
@@ -28,48 +27,16 @@ function detectLinkType(href) {
 function inferDestinationPageType(destinationUrl) {
     const raw = String(destinationUrl || '').trim();
     if (!raw) return '';
-
     const linkType = detectLinkType(raw);
     if (linkType === 'anchor') return analyticsSession.pageType;
     if (linkType === 'mailto') return 'contact';
     if (linkType === 'external') return 'external';
-
-    let parsedUrl;
-    try {
-        parsedUrl = new URL(raw, window.location.href);
-    } catch {
-        return analyticsSession.pageType;
-    }
-
-    const normalizedPath = String(parsedUrl.pathname || '').toLowerCase();
-    if (!normalizedPath || normalizedPath === '/') return analyticsSession.pageType;
-    if (
-        normalizedPath === '/portfolio/' ||
-        normalizedPath === '/portfolio/index.html' ||
-        normalizedPath === '/portfolio'
-    ) {
-        return 'portfolio_hub';
-    }
-    if (normalizedPath.includes('-portfolio') || normalizedPath.includes('/docs/')) {
-        return 'portfolio';
-    }
     return analyticsSession.pageType;
 }
 
 function trackSelectContent({
-    contentType,
-    itemId,
-    itemName,
-    sectionName,
-    interactionAction = 'click',
-    elementType,
-    elementLabel,
-    linkUrl,
-    linkType,
-    modalName,
-    value,
-    sourceEvent = 'ui_click',
-    ...extra
+    contentType, itemId, itemName, sectionName, interactionAction = 'click',
+    elementType, elementLabel, linkUrl, linkType, modalName, value, sourceEvent = 'ui_click', ...extra
 }) {
     const resolvedDestinationUrl = String(linkUrl || extra.destination_url || '').trim();
     const payload = {
@@ -86,1189 +53,374 @@ function trackSelectContent({
         interaction_action: interactionAction,
         source_event: sourceEvent
     };
-
     if (itemName) payload.item_name = itemName;
     if (elementType) payload.element_type = elementType;
     if (elementLabel) payload.element_label = elementLabel;
-    if (linkType) payload.link_type = linkType;
     if (resolvedDestinationUrl) {
         payload.link_url = resolvedDestinationUrl;
-        if (!payload.link_type) {
-            payload.link_type = detectLinkType(resolvedDestinationUrl);
-        }
         payload.destination_url = resolvedDestinationUrl;
         payload.destination_page_type = inferDestinationPageType(resolvedDestinationUrl);
     }
-    if (modalName) payload.modal_name = modalName;
-    if (typeof value === 'number' && Number.isFinite(value) && value !== Infinity && value !== -Infinity) payload.value = value;
-
-    Object.entries(extra).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== '') {
-            payload[key] = val;
-        }
-    });
-
+    Object.entries(extra).forEach(([k, v]) => { if (v !== undefined) payload[k] = v; });
     pushDataLayerEvent(payload);
 }
 
-function readScrollPercent() {
-    const documentElement = document.documentElement;
-    const maxScrollable = Math.max(0, documentElement.scrollHeight - window.innerHeight);
-    if (maxScrollable <= 0) return 100;
-    const ratio = (window.scrollY / maxScrollable) * 100;
-    return Math.max(0, Math.min(100, Math.round(ratio)));
-}
-
-function updateMaxScrollPercent() {
-    analyticsSession.maxScrollPercent = Math.max(analyticsSession.maxScrollPercent, readScrollPercent());
-}
-
-function stopVisibleTimer(timestamp = Date.now()) {
-    if (!analyticsSession.visibleStartedAt) return;
-    analyticsSession.visibleDurationMs += Math.max(0, timestamp - analyticsSession.visibleStartedAt);
-    analyticsSession.visibleStartedAt = 0;
-}
-
-function startVisibleTimer(timestamp = Date.now()) {
-    if (document.visibilityState === 'hidden' || analyticsSession.visibleStartedAt) return;
-    analyticsSession.visibleStartedAt = timestamp;
-}
-
-function endAnalyticsSession(reason = 'pagehide') {
-    if (analyticsSession.ended) return;
-    analyticsSession.ended = true;
-
-    updateMaxScrollPercent();
-    stopVisibleTimer();
-
-    const totalDurationMs = Math.max(0, Date.now() - analyticsSession.pageStartedAt);
-    const visibleDurationMs = Math.min(totalDurationMs, analyticsSession.visibleDurationMs);
-    const hiddenDurationMs = Math.max(0, totalDurationMs - visibleDurationMs);
-
-    trackSelectContent({
-        contentType: 'page_engagement',
-        itemId: 'portfolio_page',
-        itemName: document.title || 'Portfolio',
-        sectionName: 'lifecycle',
-        interactionAction: 'end',
-        elementType: 'page',
-        elementLabel: 'PAGE_END',
-        sourceEvent: 'lifecycle',
-        duration_ms: totalDurationMs,
-        engagement_time_msec: visibleDurationMs,
-        hidden_duration_ms: hiddenDurationMs,
-        max_scroll_percent: analyticsSession.maxScrollPercent,
-        page_type: 'portfolio',
-        end_reason: reason,
-        value: Math.round(visibleDurationMs / 1000)
-    });
-}
-
 function setupAnalyticsLifecycle() {
-    updateMaxScrollPercent();
-
-    trackSelectContent({
-        contentType: 'page_engagement',
-        itemId: 'portfolio_page',
-        itemName: document.title || 'Portfolio',
-        sectionName: 'lifecycle',
-        interactionAction: 'start',
-        elementType: 'page',
-        elementLabel: 'PAGE_START',
-        sourceEvent: 'lifecycle',
-        page_type: 'portfolio'
-    });
-
-    window.addEventListener('scroll', updateMaxScrollPercent, { passive: true });
-
-    document.addEventListener('visibilitychange', () => {
-        if (analyticsSession.ended) return;
-
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement;
+        const st = window.scrollY || h.scrollTop;
+        const sh = h.scrollHeight || document.body.scrollHeight;
+        const percent = Math.round((st / (sh - window.innerHeight)) * 100);
+        analyticsSession.maxScrollPercent = Math.max(analyticsSession.maxScrollPercent, percent);
+    }, { passive: true });
+    window.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            stopVisibleTimer();
-            trackSelectContent({
-                contentType: 'page_visibility',
-                itemId: 'portfolio_page',
-                itemName: document.title || 'Portfolio',
-                sectionName: 'lifecycle',
-                interactionAction: 'hidden',
-                elementType: 'page',
-                elementLabel: 'PAGE_HIDDEN',
-                sourceEvent: 'lifecycle',
-                page_type: 'portfolio'
-            });
-            return;
+            analyticsSession.visibleDurationMs += Date.now() - analyticsSession.visibleStartedAt;
+            analyticsSession.visibleStartedAt = 0;
+        } else {
+            analyticsSession.visibleStartedAt = Date.now();
         }
-
-        startVisibleTimer();
+    });
+    window.addEventListener('pagehide', () => {
+        if (analyticsSession.ended) return;
+        analyticsSession.ended = true;
         trackSelectContent({
-            contentType: 'page_visibility',
-            itemId: 'portfolio_page',
-            itemName: document.title || 'Portfolio',
-            sectionName: 'lifecycle',
-            interactionAction: 'visible',
-            elementType: 'page',
-            elementLabel: 'PAGE_VISIBLE',
-            sourceEvent: 'lifecycle',
-            page_type: 'portfolio'
+            contentType: 'page_engagement', itemId: 'portfolio_page', itemName: document.title,
+            sectionName: 'lifecycle', interactionAction: 'end', sourceEvent: 'lifecycle',
+            value: Math.round((Date.now() - analyticsSession.pageStartedAt) / 1000)
         });
     });
-
-    window.addEventListener('pagehide', () => endAnalyticsSession('pagehide'));
-    window.addEventListener('beforeunload', () => endAnalyticsSession('beforeunload'));
 }
-
-// Ensure lifecycle is initialized
-document.addEventListener('DOMContentLoaded', () => {
-    setupAnalyticsLifecycle();
-});
-
 
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 import { templateConfig } from './config.js';
 
-const baseMermaidConfig = {
-    startOnLoad: false,
-    theme: 'dark',
-    securityLevel: 'loose',
-    fontFamily: 'Inter',
-    flowchart: {
-        useMaxWidth: true,
-        htmlLabels: true,
-        curve: 'linear'
-    }
-};
+mermaid.initialize({
+    startOnLoad: false, theme: 'dark', securityLevel: 'loose', fontFamily: 'Inter',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'linear' }
+});
 
-const mermaidConfig = {
-    ...baseMermaidConfig,
-    ...(templateConfig.mermaid ?? {}),
-    flowchart: {
-        ...baseMermaidConfig.flowchart,
-        ...(templateConfig.mermaid?.flowchart ?? {})
-    }
-};
-
-mermaid.initialize(mermaidConfig);
-
-function byId(id) {
-    return document.getElementById(id);
-}
-
-function normalizeHashTarget(target) {
-    if (!target) {
-        return '#';
-    }
-    return target.startsWith('#') ? target : `#${target}`;
-}
-
-function toSafeLabel(value) {
-    return String(value ?? 'unknown').replace(/[^a-zA-Z0-9_-]+/g, ' ').trim() || 'unknown';
-}
-
-function setText(id, value) {
-    const el = byId(id);
-    if (el && value) {
-        el.textContent = value;
-    }
-}
+function byId(id) { return document.getElementById(id); }
+function setText(id, val) { const el = byId(id); if (el && val) el.textContent = val; }
 
 function setupUptime() {
-    const uptimeElement = byId('uptime');
-    if (!uptimeElement) {
-        return;
-    }
-
-    const startTime = new Date();
-    const updateUptime = () => {
-        const now = new Date();
-        const diff = Math.floor((now - startTime) / 1000);
+    const el = byId('uptime');
+    if (!el) return;
+    const start = new Date();
+    setInterval(() => {
+        const diff = Math.floor((new Date() - start) / 1000);
         const h = Math.floor(diff / 3600).toString().padStart(2, '0');
         const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
         const s = (diff % 60).toString().padStart(2, '0');
-        uptimeElement.textContent = `${h}:${m}:${s}`;
-    };
-
-    updateUptime();
-    setInterval(updateUptime, 1000);
+        el.textContent = `${h}:${m}:${s}`;
+    }, 1000);
 }
 
 function setupMobileNav() {
     const nav = byId('header-nav');
     const toggle = document.querySelector('.nav-toggle');
-    if (!nav || !toggle) {
-        return;
-    }
-
-    const closeNav = () => {
-        nav.classList.remove('is-open');
-        toggle.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
+    if (!nav || !toggle) return;
+    toggle.onclick = (e) => {
+        e.stopPropagation();
+        nav.classList.toggle('is-open');
+        toggle.classList.toggle('is-open');
     };
-
-    const openNav = () => {
-        nav.classList.add('is-open');
-        toggle.classList.add('is-open');
-        toggle.setAttribute('aria-expanded', 'true');
+    document.onclick = (e) => {
+        if (!nav.contains(e.target) && !toggle.contains(e.target)) {
+            nav.classList.remove('is-open');
+            toggle.classList.remove('is-open');
+        }
     };
-
-    toggle.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (nav.classList.contains('is-open')) {
-            closeNav();
-        } else {
-            openNav();
-        }
-    });
-
-    nav.addEventListener('click', (event) => {
-        const target = event.target;
-        if (
-            target instanceof HTMLElement &&
-            (target.classList.contains('nav-item') || target.classList.contains('nav-sub-item'))
-        ) {
-            closeNav();
-        }
-    });
-
-    document.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!(target instanceof Node)) {
-            return;
-        }
-        if (!nav.contains(target) && !toggle.contains(target)) {
-            closeNav();
-        }
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            closeNav();
-        }
-    });
-
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
-            closeNav();
-        }
-    });
-}
-
-function setSystemInfo() {
-    if (templateConfig.system?.documentTitle) {
-        document.title = templateConfig.system.documentTitle;
-    }
-    setText('system-name', templateConfig.system?.systemName);
 }
 
 function renderHero() {
-    const hero = templateConfig.hero ?? {};
-    const section = byId('system-architecture');
+    const h = templateConfig.hero ?? {};
+    setText('hero-panel-title', h.panelTitle);
+    setText('hero-panel-uid', h.panelUid);
+    const m = byId('hero-mermaid');
+    if (m && h.diagramId) m.setAttribute('data-mermaid-id', h.diagramId);
     const metrics = byId('hero-metrics');
-    const mermaidContainer = byId('hero-mermaid');
-
-    if (section && hero.sectionId) {
-        section.id = hero.sectionId;
-    }
-    setText('hero-panel-title', hero.panelTitle);
-    setText('hero-panel-uid', hero.panelUid);
-
-    if (mermaidContainer && hero.diagramId) {
-        mermaidContainer.setAttribute('data-mermaid-id', hero.diagramId);
-    }
-
-    if (!metrics) {
-        return;
-    }
-    metrics.replaceChildren();
-    renderMetricLines(metrics, hero.metrics, '> Add metrics in templateConfig.hero.metrics');
-}
-
-function renderMetricLines(container, lines, fallbackText) {
-    const metricLines = Array.isArray(lines) ? lines : [];
-    if (metricLines.length === 0) {
-        const fallback = document.createElement('p');
-        fallback.textContent = fallbackText;
-        container.appendChild(fallback);
-        return;
-    }
-
-    metricLines.forEach((line) => {
-        const item = document.createElement('p');
-        const cleanLine = String(line).replace(/^>\s*/, '');
-        item.textContent = `> ${cleanLine}`;
-        container.appendChild(item);
-    });
-}
-
-function createTopPanel(panel, index) {
-    const section = document.createElement('section');
-    section.className = `panel hero-panel ${panel.panelClass ?? ''}`.trim();
-    section.id = panel.sectionId || `top-panel-${index + 1}`;
-
-    const header = document.createElement('div');
-    header.className = 'panel-header';
-
-    const title = document.createElement('span');
-    title.className = 'panel-title';
-    title.textContent = panel.panelTitle || `TOP_PANEL_${index + 1}`;
-
-    const uid = document.createElement('span');
-    uid.className = 'panel-uid';
-    uid.textContent = panel.panelUid || `ID: TOP-${String(index + 1).padStart(2, '0')}`;
-
-    header.append(title, uid);
-
-    const graphContainer = document.createElement('div');
-    graphContainer.className = 'graph-container';
-    const mermaidContainer = document.createElement('div');
-    mermaidContainer.className = 'mermaid';
-    mermaidContainer.setAttribute('data-mermaid-id', panel.diagramId || '');
-    graphContainer.appendChild(mermaidContainer);
-
-    const metrics = document.createElement('div');
-    metrics.className = 'hero-message';
-    renderMetricLines(metrics, panel.metrics, '> Add metrics in templateConfig.topPanels');
-
-    section.append(header, graphContainer, metrics);
-    return section;
-}
-
-function renderTopPanels() {
-    const container = byId('top-panels');
-    if (!container) {
-        return;
-    }
-    container.replaceChildren();
-
-    const panels = Array.isArray(templateConfig.topPanels) ? templateConfig.topPanels : [];
-    panels.forEach((panel, index) => {
-        container.appendChild(createTopPanel(panel, index));
-    });
-}
-
-function renderSkills() {
-    const skillsConfig = templateConfig.skills ?? {};
-    const section = byId('skill-set');
-    const grid = byId('skill-grid');
-    if (!grid) {
-        return;
-    }
-
-    if (section && skillsConfig.sectionId) {
-        section.id = skillsConfig.sectionId;
-    }
-    setText('skills-panel-title', skillsConfig.panelTitle);
-    setText('skills-panel-uid', skillsConfig.panelUid);
-
-    grid.replaceChildren();
-    const items = Array.isArray(skillsConfig.items) ? skillsConfig.items : [];
-
-    items.forEach((item) => {
-        const card = document.createElement('article');
-        card.className = 'skill-card';
-
-        const title = document.createElement('h3');
-        title.className = 'skill-card-title';
-        title.textContent = item.title ?? 'CATEGORY';
-
-        const stack = document.createElement('p');
-        stack.className = 'skill-card-stack';
-        stack.textContent = item.stack ?? '';
-
-        card.append(title, stack);
-        grid.appendChild(card);
-    });
-}
-
-function createGroupDivider(group, sectionTheme) {
-    const divider = document.createElement('div');
-    divider.className = 'group-divider';
-    divider.setAttribute('data-theme', sectionTheme || 'blue');
-
-    const title = document.createElement('span');
-    title.className = 'group-title';
-    title.textContent = group.title ?? '';
-
-    const desc = document.createElement('span');
-    desc.className = 'group-desc';
-    desc.textContent = group.desc ?? '';
-
-    divider.append(title, desc);
-    return divider;
-}
-
-function createMetaLine(label, value) {
-    if (!value) {
-        return null;
-    }
-
-    const line = document.createElement('p');
-    line.className = 'card-meta-line';
-
-    const key = document.createElement('span');
-    key.className = 'meta-label';
-    key.textContent = `${label}:`;
-
-    const text = document.createElement('span');
-    text.className = 'meta-value';
-    text.textContent = value;
-
-    line.append(key, text);
-    return line;
-}
-
-function createTagList(tags) {
-    const normalizedTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
-    if (normalizedTags.length === 0) {
-        return null;
-    }
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'card-tags';
-
-    normalizedTags.forEach((tag) => {
-        const item = document.createElement('span');
-        item.className = 'card-tag';
-        item.textContent = tag;
-        wrapper.appendChild(item);
-    });
-
-    return wrapper;
-}
-
-function createHighlightList(items) {
-    const normalizedItems = Array.isArray(items) ? items.filter(Boolean) : [];
-    if (normalizedItems.length === 0) {
-        return null;
-    }
-
-    const list = document.createElement('ul');
-    list.className = 'card-highlights';
-    normalizedItems.forEach((item) => {
-        const line = document.createElement('li');
-        line.textContent = item;
-        list.appendChild(line);
-    });
-    return list;
-}
-
-function createCardLinks(card) {
-    const links = Array.isArray(card.links) ? card.links.filter((item) => item?.href) : [];
-    if (links.length === 0 && card.learnMore && card.learnMore !== '#') {
-        links.push({ label: card.linkLabel ?? 'LEARN MORE', href: card.learnMore });
-    }
-
-    if (links.length === 0) {
-        return null;
-    }
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'card-links';
-
-    links.forEach((item) => {
-        const link = document.createElement('a');
-        link.className = 'card-link';
-        const variant = String(item.variant ?? '').trim().toLowerCase();
-        if (variant) {
-            link.classList.add(`is-${variant}`);
-        }
-        link.href = item.href;
-        link.textContent = item.label || 'LINK';
-        if (!String(item.href).startsWith('mailto:')) {
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-        }
-
-        // GA4 Event Tracking
-        link.addEventListener('click', () => {
-            trackSelectContent({
-                contentType: 'case_link',
-                itemId: card.title || 'unknown_case',
-                itemName: card.title || 'Case',
-                sectionName: 'cases',
-                interactionAction: 'click',
-                elementType: 'link',
-                elementLabel: item.label,
-                linkUrl: item.href,
-                linkType: 'external'
-            });
+    if (metrics) {
+        metrics.replaceChildren();
+        (h.metrics || []).forEach(line => {
+            const p = document.createElement('p');
+            p.textContent = `> ${line}`;
+            metrics.appendChild(p);
         });
-
-        wrapper.appendChild(link);
-    });
-
-    return wrapper;
+    }
 }
 
 function createServiceCard(card, sectionConfig) {
     const article = document.createElement('article');
     article.className = `service-card ${sectionConfig.cardClass ?? ''} ${card.cardClass ?? ''}`.trim();
-
+    if (card.mermaidId) article.id = card.mermaidId;
+    
     const visual = document.createElement('div');
     visual.className = 'card-visual';
-    const visualHeight = card.visualHeight || sectionConfig.cardVisualHeight;
-    if (visualHeight) {
-        visual.style.setProperty('--card-visual-height', visualHeight);
-    }
-
-    const mermaidContainer = document.createElement('div');
-    mermaidContainer.className = 'mermaid';
-    mermaidContainer.setAttribute('data-mermaid-id', card.mermaidId ?? '');
-    visual.appendChild(mermaidContainer);
-
+    const vHeight = card.visualHeight || sectionConfig.cardVisualHeight;
+    if (vHeight) visual.style.setProperty('--card-visual-height', vHeight);
+    
+    const mermaidDiv = document.createElement('div');
+    mermaidDiv.className = 'mermaid';
+    mermaidDiv.setAttribute('data-mermaid-id', card.mermaidId ?? '');
+    visual.appendChild(mermaidDiv);
+    
     const content = document.createElement('div');
     content.className = 'card-content';
-
     const title = document.createElement('h3');
     title.className = 'card-title';
-    title.textContent = card.title ?? 'Card Title';
-
-    const subtitleText = card.subtitle ?? card.period ?? '';
-    const subtitle = document.createElement('p');
-    subtitle.className = 'card-subtitle';
-    subtitle.textContent = subtitleText;
-
-    const description = document.createElement('p');
-    description.className = 'card-desc';
-    description.textContent = card.overview ?? card.description ?? '';
-
-    const roleLine = createMetaLine('ROLE', card.role);
-    const stackLine = createMetaLine('STACK', card.stackSummary);
-    const tags = createTagList(card.skills);
-    const highlights = createHighlightList(card.highlights);
-    const links = createCardLinks(card);
-
-    content.append(title);
-    if (subtitleText) {
-        content.append(subtitle);
+    title.textContent = card.title ?? '';
+    const desc = document.createElement('p');
+    desc.className = 'card-desc';
+    desc.textContent = card.description ?? '';
+    content.append(title, desc);
+    
+    if (card.stackSummary) {
+        const p = document.createElement('p');
+        p.className = 'card-meta-line';
+        p.innerHTML = `<span class="meta-label">STACK:</span><span class="meta-value">${card.stackSummary}</span>`;
+        content.append(p);
     }
-    content.append(description);
-    if (roleLine) {
-        content.append(roleLine);
-    }
-    if (stackLine) {
-        content.append(stackLine);
-    }
-    if (tags) {
-        content.append(tags);
-    }
-    if (highlights) {
-        content.append(highlights);
-    }
-    if (links) {
-        content.append(links);
-    }
+    
+    const linksWrapper = document.createElement('div');
+    linksWrapper.className = 'card-links';
+    (card.links || []).forEach(l => {
+        const a = document.createElement('a');
+        a.className = `card-link ${l.variant ? 'is-' + l.variant : ''}`;
+        a.href = l.href;
+        a.textContent = l.label;
+        if (!l.href.startsWith('#')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+        linksWrapper.appendChild(a);
+    });
+    content.append(linksWrapper);
+    
     article.append(visual, content);
     return article;
 }
 
+function createSectionRecruiterBrief(sectionConfig) {
+    const brief = sectionConfig?.recruiterBrief;
+    if (!brief) return null;
+    const wrapper = document.createElement('section');
+    wrapper.className = 'section-recruiter-brief';
+    
+    if (brief.kicker) {
+        const k = document.createElement('p');
+        k.className = 'section-recruiter-kicker';
+        k.textContent = brief.kicker;
+        wrapper.appendChild(k);
+    }
+    if (brief.title) {
+        const t = document.createElement('h3');
+        t.className = 'section-recruiter-title';
+        t.textContent = brief.title;
+        wrapper.appendChild(t);
+    }
+    
+    const grid = document.createElement('div');
+    grid.className = 'section-recruiter-card-grid';
+    (brief.cases || []).forEach(c => {
+        const card = document.createElement('article');
+        card.className = 'section-recruiter-card';
+        card.innerHTML = `
+            <div class="section-recruiter-card-header">
+                <p class="section-recruiter-card-id">${c.id}</p>
+                <h4 class="section-recruiter-card-title">${c.title}</h4>
+                <div class="section-recruiter-card-toggle-hint">DETAILS</div>
+            </div>
+            <div class="section-recruiter-card-details">
+                <div class="section-recruiter-card-row">
+                    <span class="section-recruiter-card-key">PROBLEM</span>
+                    <span class="section-recruiter-card-value">${c.problem}</span>
+                </div>
+                <div class="section-recruiter-card-row">
+                    <span class="section-recruiter-card-key">ACTION</span>
+                    <span class="section-recruiter-card-value">${c.action}</span>
+                </div>
+                <div class="section-recruiter-card-row">
+                    <span class="section-recruiter-card-key">IMPACT</span>
+                    <span class="section-recruiter-card-value">${c.impact}</span>
+                </div>
+                <button class="card-extra-btn">아키텍처 상세보기</button>
+            </div>
+        `;
+
+        const btn = card.querySelector('.card-extra-btn');
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                revealHashTarget(c.anchorId);
+                trackSelectContent({
+                    contentType: 'recruiter_quick_brief_goto',
+                    itemId: c.id, itemName: c.title, sectionName: 'recruiter_quick_brief',
+                    interactionAction: 'click_goto_detail',
+                    elementLabel: '아키텍처 상세보기',
+                    linkUrl: `#${c.anchorId}`
+                });
+            });
+        }
+
+        card.onclick = () => {
+            const isExpanded = card.classList.toggle('is-expanded');
+            trackSelectContent({
+                contentType: 'recruiter_quick_brief_card',
+                itemId: c.id, itemName: c.title, sectionName: 'recruiter_quick_brief',
+                interactionAction: isExpanded ? 'expand' : 'collapse'
+            });
+        };
+        grid.appendChild(card);
+    });
+    wrapper.appendChild(grid);
+    const actions = document.createElement('div');
+    actions.className = 'section-recruiter-actions';
+    wrapper.appendChild(actions);
+    return wrapper;
+}
+
+function revealHashTarget(hash) {
+    const id = hash.replace(/^#/, '');
+    if (!id) return;
+    setTimeout(() => {
+        const target = byId(id);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.remove('is-target-highlight');
+        void target.offsetWidth;
+        target.classList.add('is-target-highlight');
+        trackSelectContent({
+            contentType: 'hash_target_reveal', itemId: id, sectionName: 'navigation',
+            interactionAction: 'reveal_target'
+        });
+    }, 100);
+}
+
 function renderServiceSections() {
     const container = byId('service-sections');
-    if (!container) {
-        return;
-    }
+    if (!container) return;
     container.replaceChildren();
-
-    const sections = Array.isArray(templateConfig.serviceSections) ? templateConfig.serviceSections : [];
-    sections.forEach((sectionConfig) => {
+    (templateConfig.serviceSections || []).forEach(sec => {
         const sectionWrapper = document.createElement('section');
         sectionWrapper.className = 'service-section';
-        sectionWrapper.id = sectionConfig.id ?? '';
-
+        sectionWrapper.id = sec.id;
         const header = document.createElement('div');
         header.className = 'section-header';
-        const heading = document.createElement('h2');
-        heading.className = 'section-title';
-        heading.textContent = sectionConfig.title ?? 'SERVICES';
-        header.appendChild(heading);
-
-        const grid = document.createElement('div');
-        grid.className = 'service-grid';
-
-        const groups = Array.isArray(sectionConfig.groups) && sectionConfig.groups.length > 0
-            ? sectionConfig.groups
-            : [{ title: '', desc: '', cards: sectionConfig.cards ?? [] }];
-
-        groups.forEach((group) => {
-            if (group.title || group.desc) {
-                grid.appendChild(createGroupDivider(group, sectionConfig.theme));
+        const h2 = document.createElement('h2');
+        h2.className = 'section-title';
+        h2.textContent = sec.title;
+        header.appendChild(h2);
+        
+        const brief = createSectionRecruiterBrief(sec);
+        const groupsContainer = document.createElement('div');
+        groupsContainer.className = 'service-groups';
+        (sec.groups || []).forEach(g => {
+            const gSec = document.createElement('div');
+            gSec.className = 'service-group';
+            if (g.title || g.desc) {
+                const div = document.createElement('div');
+                div.className = 'group-divider';
+                div.setAttribute('data-theme', sec.theme);
+                div.innerHTML = `<span class="group-title">${g.title}</span><span class="group-desc">${g.desc}</span>`;
+                gSec.appendChild(div);
             }
-
-            const cards = Array.isArray(group.cards) ? group.cards : [];
-            cards.forEach((card) => {
-                grid.appendChild(createServiceCard(card, sectionConfig));
-            });
+            const grid = document.createElement('div');
+            grid.className = 'service-grid';
+            (g.cards || []).forEach(c => grid.appendChild(createServiceCard(c, sec)));
+            gSec.appendChild(grid);
+            groupsContainer.appendChild(gSec);
         });
-
-        sectionWrapper.append(header, grid);
+        
+        sectionWrapper.append(header);
+        if (brief) sectionWrapper.appendChild(brief);
+        sectionWrapper.appendChild(groupsContainer);
         container.appendChild(sectionWrapper);
     });
 }
 
-function renderContact() {
-    const contact = templateConfig.contact ?? {};
-    const section = byId('contact');
-    const actions = byId('contact-actions');
-
-    if (section && contact.sectionId) {
-        section.id = contact.sectionId;
-    }
-    setText('contact-panel-title', contact.panelTitle);
-    setText('contact-panel-uid', contact.panelUid);
-    setText('contact-description', contact.description);
-
-    if (!actions) {
-        return;
-    }
-    actions.replaceChildren();
-
-    const items = Array.isArray(contact.actions) ? contact.actions : [];
-    items.forEach((item) => {
-        const action = document.createElement('a');
-        action.className = 'action-btn';
-        action.href = item.href || '#';
-        action.textContent = item.label || 'LINK';
-        if (!String(item.href || '').startsWith('mailto:')) {
-            action.target = '_blank';
-            action.rel = 'noopener noreferrer';
-        }
-        actions.appendChild(action);
+function renderTopPanels() {
+    const container = byId('top-panels');
+    if (!container) return;
+    container.replaceChildren();
+    (templateConfig.topPanels || []).forEach(p => {
+        const sec = document.createElement('section');
+        sec.className = 'panel hero-panel';
+        sec.id = p.sectionId;
+        sec.innerHTML = `
+            <div class="panel-header">
+                <span class="panel-title">${p.panelTitle}</span>
+                <span class="panel-uid">${p.panelUid}</span>
+            </div>
+            <div class="graph-container">
+                <div class="mermaid" data-mermaid-id="${p.diagramId}"></div>
+            </div>
+            <div class="hero-message"></div>
+        `;
+        const metrics = sec.querySelector('.hero-message');
+        (p.metrics || []).forEach(line => {
+            const item = document.createElement('p');
+            item.textContent = `> ${line}`;
+            metrics.appendChild(item);
+        });
+        container.appendChild(sec);
     });
 }
 
-function buildDefaultNavigation() {
-    const items = [];
-
-    const hero = templateConfig.hero ?? {};
-    const skills = templateConfig.skills ?? {};
-    const contact = templateConfig.contact ?? {};
-
-    items.push({
-        label: hero.panelTitle || 'SYSTEM_ARCHITECTURE',
-        target: normalizeHashTarget(hero.sectionId || 'system-architecture')
-    });
-
-    const topPanels = Array.isArray(templateConfig.topPanels) ? templateConfig.topPanels : [];
-    const serviceSections = Array.isArray(templateConfig.serviceSections) ? templateConfig.serviceSections : [];
-    const candidates = [];
-    let sequence = 0;
-
-    topPanels.forEach((panel, index) => {
-        candidates.push({
-            label: panel.navLabel || panel.panelTitle || `TOP_PANEL_${index + 1}`,
-            target: normalizeHashTarget(panel.sectionId || `top-panel-${index + 1}`),
-            sequence: sequence += 1
+function renderSkills() {
+    const s = templateConfig.skills || {};
+    setText('skills-panel-title', s.panelTitle);
+    setText('skills-panel-uid', s.panelUid);
+    const grid = byId('skill-grid');
+    if (grid) {
+        grid.replaceChildren();
+        (s.items || []).forEach(item => {
+            const article = document.createElement('article');
+            article.className = 'skill-card';
+            article.innerHTML = `<h3 class="skill-card-title">${item.title}</h3><p class="skill-card-stack">${item.stack}</p>`;
+            grid.appendChild(article);
         });
-    });
+    }
+}
 
-    candidates.push({
-        label: skills.panelTitle || 'SKILL_SET',
-        target: normalizeHashTarget(skills.sectionId || 'skill-set'),
-        sequence: sequence += 1
-    });
-
-    serviceSections.forEach((section) => {
-        candidates.push({
-            label: section.navLabel || section.title || section.id || 'SERVICES',
-            target: normalizeHashTarget(section.id || ''),
-            sequence: sequence += 1
+function renderContact() {
+    const c = templateConfig.contact || {};
+    setText('contact-panel-title', c.panelTitle);
+    setText('contact-panel-uid', c.panelUid);
+    setText('contact-description', c.description);
+    const actions = byId('contact-actions');
+    if (actions) {
+        actions.replaceChildren();
+        (c.actions || []).forEach(a => {
+            const btn = document.createElement('a');
+            btn.className = 'action-btn';
+            btn.href = a.href;
+            btn.textContent = a.label;
+            if (!a.href.startsWith('mailto:')) { btn.target = '_blank'; btn.rel = 'noopener noreferrer'; }
+            actions.appendChild(btn);
         });
-    });
-
-    const resolveTargetTop = (target) => {
-        const targetId = String(target || '').replace(/^#/, '');
-        if (!targetId) {
-            return Number.POSITIVE_INFINITY;
-        }
-        const targetElement = byId(targetId);
-        if (!targetElement) {
-            return Number.POSITIVE_INFINITY;
-        }
-        return targetElement.getBoundingClientRect().top + window.scrollY;
-    };
-
-    candidates
-        .sort((left, right) => {
-            const topDiff = resolveTargetTop(left.target) - resolveTargetTop(right.target);
-            if (Math.abs(topDiff) > 0.5) {
-                return topDiff;
-            }
-            return left.sequence - right.sequence;
-        })
-        .forEach((item) => {
-            items.push({
-                label: item.label,
-                target: item.target
-            });
-        });
-
-    items.push({
-        label: contact.panelTitle || 'CONTACT',
-        target: normalizeHashTarget(contact.sectionId || 'contact')
-    });
-
-    return items;
+    }
 }
 
 function renderNavigation() {
     const nav = byId('header-nav');
-    if (!nav) {
-        return;
-    }
+    if (!nav) return;
+    const items = [
+        { label: 'ARCHITECTURE', target: '#system-architecture' },
+        { label: 'APPLICATION_MAP', target: '#application-map-panel' },
+        { label: 'SKILLS', target: '#skill-set' },
+        { label: 'SERVICES', target: '#backend-services' },
+        { label: 'CONTACT', target: '#contact' }
+    ];
     nav.replaceChildren();
-
-    const configuredNav = Array.isArray(templateConfig.navigation) && templateConfig.navigation.length > 0
-        ? templateConfig.navigation
-        : buildDefaultNavigation();
-
-    configuredNav.forEach((item) => {
-        const link = document.createElement('a');
-        link.className = 'nav-item';
-        link.href = normalizeHashTarget(item.target);
-        link.textContent = item.label || 'SECTION';
-        nav.appendChild(link);
-    });
-}
-
-function setupScrollSpy() {
-    const nav = byId('header-nav');
-    if (!nav) {
-        return;
-    }
-
-    const links = Array.from(nav.querySelectorAll('.nav-item, .nav-sub-item'));
-    if (links.length === 0) {
-        return;
-    }
-
-    const targetMap = new Map();
-    links.forEach((link) => {
-        const href = String(link.getAttribute('href') || '');
-        if (!href.startsWith('#') || href.length < 2) {
-            return;
-        }
-
-        const targetId = href.slice(1);
-        const targetElement = byId(targetId);
-        if (!targetElement) {
-            return;
-        }
-
-        if (!targetMap.has(targetId)) {
-            targetMap.set(targetId, {
-                element: targetElement,
-                links: []
-            });
-        }
-        targetMap.get(targetId).links.push(link);
-    });
-
-    if (targetMap.size === 0) {
-        return;
-    }
-
-    let sortedTargets = [];
-    let currentActiveId = '';
-    let rafToken = 0;
-
-    const clearActive = () => {
-        links.forEach((link) => link.classList.remove('is-active'));
-    };
-
-    const activateTarget = (targetId) => {
-        if (!targetId || currentActiveId === targetId) {
-            return;
-        }
-        currentActiveId = targetId;
-        clearActive();
-
-        const matched = targetMap.get(targetId);
-        if (!matched) {
-            return;
-        }
-
-        matched.links.forEach((link) => link.classList.add('is-active'));
-    };
-
-    const rebuildTargetOrder = () => {
-        sortedTargets = Array.from(targetMap.entries())
-            .map(([targetId, payload]) => ({
-                targetId,
-                top: payload.element.getBoundingClientRect().top + window.scrollY
-            }))
-            .sort((left, right) => left.top - right.top);
-    };
-
-    const applyByScrollPosition = () => {
-        if (sortedTargets.length === 0) {
-            return;
-        }
-
-        const headerHeight = document.querySelector('.status-bar')?.offsetHeight ?? 0;
-        const baseline = window.scrollY + headerHeight + 28;
-        let activeId = sortedTargets[0].targetId;
-
-        for (let index = 0; index < sortedTargets.length; index += 1) {
-            if (baseline >= sortedTargets[index].top) {
-                activeId = sortedTargets[index].targetId;
-            } else {
-                break;
-            }
-        }
-
-        activateTarget(activeId);
-    };
-
-    const scheduleUpdate = () => {
-        if (rafToken !== 0) {
-            return;
-        }
-        rafToken = window.requestAnimationFrame(() => {
-            rafToken = 0;
-            applyByScrollPosition();
-        });
-    };
-
-    rebuildTargetOrder();
-    applyByScrollPosition();
-
-    window.addEventListener('scroll', scheduleUpdate, { passive: true });
-    window.addEventListener('resize', () => {
-        rebuildTargetOrder();
-        scheduleUpdate();
-    });
-    window.addEventListener('hashchange', scheduleUpdate);
-
-    window.setTimeout(() => {
-        rebuildTargetOrder();
-        scheduleUpdate();
-    }, 160);
-    window.setTimeout(() => {
-        rebuildTargetOrder();
-        scheduleUpdate();
-    }, 720);
-}
-
-function injectMermaidSources() {
-    const nodes = Array.from(document.querySelectorAll('.mermaid'));
-    const diagrams = templateConfig.diagrams ?? {};
-
-    nodes.forEach((container) => {
-        const mermaidId = container.getAttribute('data-mermaid-id') || '';
-        if (mermaidId && diagrams[mermaidId]) {
-            container.innerHTML = diagrams[mermaidId];
-            return;
-        }
-
-        const label = toSafeLabel(mermaidId || 'undefined_id');
-        container.innerHTML = `
-            graph TD
-            A[${label}] --> B[Define templateConfig.diagrams entry]
-        `;
-    });
-
-    return nodes;
-}
-
-function setupMermaidModal() {
-    const modal = byId('mermaid-modal');
-    const modalContent = byId('mermaid-modal-content');
-    const modalTitle = byId('mermaid-modal-title');
-    const modalDialog = modal?.querySelector('.mermaid-modal-dialog') ?? null;
-
-    if (!modal || !modalContent || !modalTitle || !modalDialog) {
-        return;
-    }
-
-    const targets = document.querySelectorAll('.graph-container, .card-visual');
-    const ZOOM_STEP = 0.15;
-    const ZOOM_MIN = 0.55;
-    const ZOOM_MAX = 3;
-
-    let zoom = 1;
-    let activeSvg = null;
-    let activeCanvas = null;
-    let baseSvgWidth = 0;
-    let baseSvgHeight = 0;
-    let isPanning = false;
-    let panStartX = 0;
-    let panStartY = 0;
-    let panStartScrollLeft = 0;
-    let panStartScrollTop = 0;
-
-    let controls = modal.querySelector('.mermaid-modal-controls');
-    if (!controls) {
-        controls = document.createElement('div');
-        controls.className = 'mermaid-modal-controls';
-        controls.innerHTML = `
-            <button class="mermaid-zoom-btn" type="button" data-mermaid-zoom="out" aria-label="Zoom out">-</button>
-            <button class="mermaid-zoom-btn" type="button" data-mermaid-zoom="reset" aria-label="Reset zoom">RESET</button>
-            <button class="mermaid-zoom-btn" type="button" data-mermaid-zoom="in" aria-label="Zoom in">+</button>
-            <span class="mermaid-zoom-value" aria-live="polite">100%</span>
-        `;
-        modalDialog.appendChild(controls);
-    }
-
-    const zoomValue = controls.querySelector('.mermaid-zoom-value');
-
-    const centerModalView = () => {
-        const maxLeft = modalContent.scrollWidth - modalContent.clientWidth;
-        if (maxLeft > 0) {
-            modalContent.scrollLeft = Math.floor(maxLeft / 2);
-            return;
-        }
-        modalContent.scrollLeft = 0;
-    };
-
-    const scheduleCenterModalView = () => {
-        window.requestAnimationFrame(() => {
-            centerModalView();
-            window.requestAnimationFrame(centerModalView);
-        });
-    };
-
-    const endPan = () => {
-        if (!isPanning) {
-            return;
-        }
-        isPanning = false;
-        modalContent.classList.remove('is-panning');
-    };
-
-    const applyZoom = () => {
-        if (!activeSvg || !activeCanvas) {
-            return;
-        }
-
-        const nextWidth = Math.max(1, Math.round(baseSvgWidth * zoom));
-        const nextHeight = Math.max(1, Math.round(baseSvgHeight * zoom));
-        activeCanvas.style.width = `${nextWidth}px`;
-        activeCanvas.style.height = `${nextHeight}px`;
-        activeSvg.style.maxWidth = 'none';
-        activeSvg.style.width = '100%';
-        activeSvg.style.height = '100%';
-        activeSvg.setAttribute('width', String(baseSvgWidth));
-        activeSvg.setAttribute('height', String(baseSvgHeight));
-
-        if (zoom > 1.001) {
-            modalContent.classList.add('can-pan');
-        } else {
-            endPan();
-            modalContent.classList.remove('can-pan');
-        }
-
-        if (zoomValue) {
-            zoomValue.textContent = `${Math.round(zoom * 100)}%`;
-        }
-    };
-
-    const setZoom = (nextZoom) => {
-        const clampedZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, nextZoom));
-        if (Math.abs(clampedZoom - zoom) < 0.0001) {
-            return;
-        }
-        zoom = clampedZoom;
-        applyZoom();
-    };
-
-    const closeModal = () => {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        modalContent.replaceChildren();
-        endPan();
-        modalContent.classList.remove('can-pan');
-        activeSvg = null;
-        activeCanvas = null;
-        baseSvgWidth = 0;
-        baseSvgHeight = 0;
-        zoom = 1;
-        if (zoomValue) {
-            zoomValue.textContent = '100%';
-        }
-        document.body.classList.remove('modal-open');
-    };
-
-    const openModal = (target) => {
-        const sourceSvg = target.querySelector('.mermaid svg');
-        if (!sourceSvg) {
-            return;
-        }
-
-        const clonedSvg = sourceSvg.cloneNode(true);
-        clonedSvg.style.maxWidth = 'none';
-        clonedSvg.style.width = '100%';
-        clonedSvg.style.height = '100%';
-
-        const viewBox = sourceSvg.getAttribute('viewBox');
-        let calculatedBaseWidth = 0;
-        let calculatedBaseHeight = 0;
-        if (viewBox) {
-            const parts = viewBox.trim().split(/\s+/).map(Number);
-            if (parts.length === 4 && parts.every(Number.isFinite)) {
-                const modalBaseScale = 1.08;
-                calculatedBaseWidth = Math.round(parts[2] * modalBaseScale);
-                calculatedBaseHeight = Math.round(parts[3] * modalBaseScale);
-            }
-        }
-
-        if (calculatedBaseWidth <= 0 || calculatedBaseHeight <= 0) {
-            const rect = sourceSvg.getBoundingClientRect();
-            const modalBaseScale = 1.08;
-            calculatedBaseWidth = Math.max(1, Math.round(rect.width * modalBaseScale));
-            calculatedBaseHeight = Math.max(1, Math.round(rect.height * modalBaseScale));
-        }
-
-        baseSvgWidth = calculatedBaseWidth;
-        baseSvgHeight = calculatedBaseHeight;
-
-        clonedSvg.setAttribute('width', String(baseSvgWidth));
-        clonedSvg.setAttribute('height', String(baseSvgHeight));
-
-        const canvas = document.createElement('div');
-        canvas.className = 'mermaid-modal-canvas';
-        canvas.style.width = `${baseSvgWidth}px`;
-        canvas.style.height = `${baseSvgHeight}px`;
-        canvas.appendChild(clonedSvg);
-
-        modalContent.replaceChildren(canvas);
-        modalContent.scrollLeft = 0;
-        modalContent.scrollTop = 0;
-        activeCanvas = canvas;
-        activeSvg = clonedSvg;
-        zoom = 1;
-        applyZoom();
-
-        const titleText =
-            target.closest('.service-card')?.querySelector('.card-title')?.textContent?.trim() ||
-            target.closest('.hero-panel')?.querySelector('.panel-title')?.textContent?.trim() ||
-            'Mermaid Diagram';
-        modalTitle.textContent = titleText;
-
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('modal-open');
-        scheduleCenterModalView();
-    };
-
-    controls.querySelectorAll('[data-mermaid-zoom]').forEach((button) => {
-        button.addEventListener('click', (event) => {
-            const control = event.currentTarget;
-            if (!(control instanceof HTMLElement)) {
-                return;
-            }
-            const action = control.getAttribute('data-mermaid-zoom');
-            if (!action || !modal.classList.contains('is-open')) {
-                return;
-            }
-
-            if (action === 'in') {
-                setZoom(zoom + ZOOM_STEP);
-                return;
-            }
-            if (action === 'out') {
-                setZoom(zoom - ZOOM_STEP);
-                return;
-            }
-            zoom = 1;
-            applyZoom();
-            scheduleCenterModalView();
-        });
-    });
-
-    modalContent.addEventListener('wheel', (event) => {
-        if (!modal.classList.contains('is-open') || !activeSvg || !event.ctrlKey) {
-            return;
-        }
-        event.preventDefault();
-        if (event.deltaY < 0) {
-            setZoom(zoom + ZOOM_STEP);
-            return;
-        }
-        setZoom(zoom - ZOOM_STEP);
-    }, { passive: false });
-
-    modalContent.addEventListener('pointerdown', (event) => {
-        if (!modal.classList.contains('is-open') || !activeSvg || zoom <= 1.001) {
-            return;
-        }
-        if (event.button !== 0) {
-            return;
-        }
-        isPanning = true;
-        panStartX = event.clientX;
-        panStartY = event.clientY;
-        panStartScrollLeft = modalContent.scrollLeft;
-        panStartScrollTop = modalContent.scrollTop;
-        modalContent.classList.add('is-panning');
-        event.preventDefault();
-    });
-
-    modalContent.addEventListener('pointermove', (event) => {
-        if (!isPanning) {
-            return;
-        }
-        const deltaX = event.clientX - panStartX;
-        const deltaY = event.clientY - panStartY;
-        modalContent.scrollLeft = panStartScrollLeft - deltaX;
-        modalContent.scrollTop = panStartScrollTop - deltaY;
-        event.preventDefault();
-    });
-
-    modalContent.addEventListener('pointerup', endPan);
-    modalContent.addEventListener('pointercancel', endPan);
-    modalContent.addEventListener('pointerleave', (event) => {
-        if (isPanning && !(event.buttons & 1)) {
-            endPan();
-        }
-    });
-
-    targets.forEach((target) => {
-        target.classList.add('mermaid-zoom-target');
-        target.setAttribute('tabindex', '0');
-        target.setAttribute('role', 'button');
-        target.setAttribute('aria-label', 'Open expanded Mermaid diagram');
-
-        target.addEventListener('click', () => openModal(target));
-        target.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openModal(target);
-            }
-        });
-    });
-
-    modal.querySelectorAll('[data-mermaid-close]').forEach((closeButton) => {
-        closeButton.addEventListener('click', closeModal);
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (!modal.classList.contains('is-open')) {
-            return;
-        }
-        if (event.key === 'Escape') {
-            closeModal();
-            return;
-        }
-        if (event.key === '+' || event.key === '=') {
-            event.preventDefault();
-            setZoom(zoom + ZOOM_STEP);
-            return;
-        }
-        if (event.key === '-' || event.key === '_') {
-            event.preventDefault();
-            setZoom(zoom - ZOOM_STEP);
-            return;
-        }
-        if (event.key === '0') {
-            event.preventDefault();
-            zoom = 1;
-            applyZoom();
-            scheduleCenterModalView();
-        }
+    items.forEach(i => {
+        const a = document.createElement('a');
+        a.className = 'nav-item';
+        a.href = i.target;
+        a.textContent = i.label;
+        nav.appendChild(a);
     });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    setupAnalyticsLifecycle();
     setSystemInfo();
     renderHero();
     renderTopPanels();
@@ -1278,23 +430,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderNavigation();
     setupUptime();
     setupMobileNav();
-
-    const mermaidNodes = injectMermaidSources();
-    for (let index = 0; index < mermaidNodes.length; index += 1) {
-        const node = mermaidNodes[index];
-        const tempClass = `mermaid-render-target-${index}`;
-        node.classList.add(tempClass);
-        try {
-            await mermaid.run({ querySelector: `.${tempClass}` });
-        } catch (error) {
-            console.error('Mermaid render failed for node:', node, error);
-            const failedId = node.getAttribute('data-mermaid-id') || 'unknown';
-            node.innerHTML = `<p style="margin:0;color:#ffb4b4;">Diagram render failed: ${failedId}</p>`;
-        } finally {
-            node.classList.remove(tempClass);
+    
+    const nodes = Array.from(document.querySelectorAll('.mermaid'));
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const id = node.getAttribute('data-mermaid-id');
+        if (id && templateConfig.diagrams[id]) {
+            node.innerHTML = templateConfig.diagrams[id];
+            try {
+                const tempClass = `mermaid-render-${i}`;
+                node.classList.add(tempClass);
+                await mermaid.run({ querySelector: `.${tempClass}` });
+            } catch (e) { console.error(e); }
         }
     }
-
-    setupMermaidModal();
-    setupScrollSpy();
+    
+    document.querySelectorAll('.mermaid').forEach(m => {
+        m.style.cursor = 'zoom-in';
+        m.onclick = () => {
+            const svg = m.querySelector('svg');
+            if (svg) {
+                const modal = byId('mermaid-modal');
+                const content = byId('mermaid-modal-content');
+                content.innerHTML = '';
+                const clone = svg.cloneNode(true);
+                clone.style.width = '100%';
+                clone.style.height = 'auto';
+                content.appendChild(clone);
+                modal.classList.add('is-open');
+                document.body.classList.add('modal-open');
+            }
+        };
+    });
+    
+    document.querySelectorAll('[data-mermaid-close]').forEach(b => {
+        b.onclick = () => {
+            byId('mermaid-modal').classList.remove('is-open');
+            document.body.classList.remove('modal-open');
+        };
+    });
+    
+    if (window.location.hash) revealHashTarget(window.location.hash);
+    window.onhashchange = () => revealHashTarget(window.location.hash);
 });
+
+function setSystemInfo() {
+    if (templateConfig.system?.documentTitle) document.title = templateConfig.system.documentTitle;
+    setText('system-name', templateConfig.system?.systemName);
+}
