@@ -60,6 +60,11 @@ export const templateConfig = {
             '플랫폼 개요: 실시간 입찰 정합성과 자동화된 결제/채팅 라이프사이클을 제공하는 경매 서비스',
             '전체 핵심 기능: 실시간 입찰(WebSocket), 경매 자동 스케줄링(Celery), 휴대폰 인증, 카카오페이 결제, 1:1 채팅, 신고/제재 시스템',
             '시스템 구성: ASGI 통합 라우팅, 비동기 태스크 큐, 트리 구조 데이터 모델링 기반 대규모 조회 최적화'
+        ],
+        quickLinks: [
+            { label: 'GITHUB_REPO', href: 'https://github.com/ramyo564/realtime_auction', variant: 'primary' },
+            { label: 'PROBLEM_SOLVING', href: 'https://ramyo564.github.io/realtime_auction-portfolio/', variant: 'secondary' },
+            { label: 'PORTFOLIO_HUB', href: 'https://ramyo564.github.io/Portfolio/', variant: 'ghost' }
         ]
     },
 
@@ -180,7 +185,7 @@ export const templateConfig = {
         panelUid: 'ID: CONTACT-01',
         description: '실시간 아키텍처 및 경매 플랫폼 관련 협업을 위해 아래 채널로 연락 부탁드립니다.',
         actions: [
-            { label: 'GITHUB', href: 'https://github.com/ramyo564/realtime_auction' },
+            { label: 'GITHUB_REPO', href: 'https://github.com/ramyo564/realtime_auction' },
             { label: 'EVIDENCE', href: `./evidence/realtime_auction/index.html` },
             { label: 'EMAIL', href: 'mailto:yohan032yohan@gmail.com' },
             { label: 'TEAM_REPO', href: 'https://github.com/wodnrP/realtime_auction' }

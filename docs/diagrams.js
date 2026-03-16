@@ -1,26 +1,50 @@
 export const diagrams = {
     'realtime-auction-system-architecture': `
+        %%{init: {'flowchart': {'nodeSpacing': 26, 'rankSpacing': 28}}}%%
         graph LR
-        Client[Web or Mobile Client] --> Daphne[Daphne ASGI]
-        Daphne --> Django[Django + DRF]
-        Daphne --> Channels[Django Channels]
+        subgraph Client [Client Layer]
+            U[Web / Mobile User]
+        end
 
-        Django --> SQLite[(SQLite DB)]
-        Django --> Redis[(Redis Channel Layer and Broker)]
-        Django --> KakaoPay[KakaoPay API]
-        Django --> NaverSMS[Naver SMS API]
+        subgraph Application [Application Layer]
+            Daphne[Daphne ASGI Server]
+            Django[Django + DRF Engine]
+            Channels[Django Channels]
+            Daphne --> Django
+            Daphne --> Channels
+        end
 
+        subgraph DataServices [Data & Message Services]
+            SQLite[(SQLite Database)]
+            Redis[(Redis Broker & Cache)]
+            Media[(Media Storage)]
+        end
+
+        subgraph ExternalAPI [External Service Integration]
+            KakaoPay[KakaoPay API]
+            NaverSMS[Naver SMS API]
+        end
+
+        subgraph BackgroundWorkers [Background & Automation]
+            CeleryWorker[Celery Worker]
+            CeleryBeat[Celery Beat]
+        end
+
+        U --> Daphne
+        Django --> SQLite
+        Django --> Redis
+        Django --> Media
+        Django --> KakaoPay
+        Django --> NaverSMS
         Channels --> Redis
-        CeleryWorker[Celery Worker] --> Redis
-        CeleryBeat[Celery Beat] --> Redis
+        CeleryWorker --> Redis
+        CeleryBeat --> Redis
         CeleryWorker --> Django
-
-        Django --> Media[(Media Storage)]
 
         classDef b fill:#161b22,stroke:#58a6ff,color:#c9d1d9
         classDef g fill:#161b22,stroke:#238636,color:#c9d1d9
         classDef o fill:#161b22,stroke:#d29922,color:#c9d1d9
-        class Client,Daphne,Django,Channels b
+        class U,Daphne,Django,Channels b
         class SQLite,Redis,Media g
         class CeleryWorker,CeleryBeat,KakaoPay,NaverSMS o
     `,
